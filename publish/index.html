@@ -1127,8 +1127,8 @@
           <div class="tenant-info">
             <div id="tenantAvatarContainer" class="avatar-circle"></div>
             <div class="tenant-details">
-              <h4 id="tenantName">林小晚</h4>
-              <span id="tenantRoom">302室 · 焦虑主播</span>
+              <h4 id="tenantName">---</h4>
+              <span id="tenantRoom">---</span>
               <div class="secret-progress-bar"><div class="secret-progress-fill" id="secretFill" style="width:33%;"></div></div>
             </div>
           </div>
@@ -1244,33 +1244,23 @@
     </div>
   </div>
 
+  <script src="data/tenants.js"></script>
   <script>
     (function() {
-      // ==================== 游戏数据 ====================
-      const tenants = [
-        { id: 'lin', name: '林小晚', room: '302', initial: '林', secretsTotal: 3, secretsFound: 0, desc: '焦虑主播',
-          appearance: '及肩黑发，淡妆，常穿宽松家居服，身形纤瘦',
-          personality: '敏感多疑，情绪波动大，渴望关注又害怕被看穿',
-          secretNames: ['伪造打赏记录', '自导失踪计划', '平台内应联系人'] },
-        { id: 'wen', name: '温雨桐', room: '402', initial: '温', secretsTotal: 3, secretsFound: 0, desc: '设计师',
-          appearance: '齐耳短发，佩戴银框眼镜，休闲西装外套，气质干练',
-          personality: '冷静理性，心思缜密，表面温和实则极具城府',
-          secretNames: ['未婚夫死因', '复仇目标身份', '完美犯罪装置'] },
-        { id: 'chen', name: '陈伯', room: '101', initial: '陈', secretsTotal: 3, secretsFound: 0, desc: '退休教师',
-          appearance: '花白头发，老式中山装，步履稳健，眼神锐利',
-          personality: '沉稳老练，观察入微，看似慈祥实则暗藏锋芒',
-          secretNames: ['曾是刑侦顾问', '暗中记录异常', '掌握关键证据'] },
-        { id: 'zhang', name: '张伟', room: '201', initial: '张', secretsTotal: 3, secretsFound: 0, desc: '前职员',
-          appearance: '微胖身材，常穿廉价衬衫，头发略显凌乱，面色疲惫',
-          personality: '急躁易怒，自尊心强，走投无路时容易铤而走险',
-          secretNames: ['被裁真相', '巨额债务', '伪造简历'] },
-        { id: 'detective', name: '???', room: '501', initial: '?', secretsTotal: 3, secretsFound: 0, desc: '新租客',
-          appearance: '高大身影，深色风衣，帽檐压低，难辨面容',
-          personality: '神秘低调，行事缜密，身上散发着危险的气息',
-          secretNames: ['真实身份', '调查目标', '证据收集进度'], isDetective: true }
-      ];
+      // ==================== 游戏数据（从 tenants.js 配置加载） ====================
+      const tenants = (window.GameData && window.GameData.tenants || []).map(t => ({
+        ...t,
+        secretsFound: 0,
+        secretNames: t.secretNames || Array.from({ length: t.secretsTotal || 3 }, (_, i) => `秘密${i + 1}`),
+        appearance: t.appearance || '待补充',
+        personality: t.personality || '待补充'
+      }));
 
       let currentTenant = tenants[0];
+
+      // 辅助函数：按 ID 动态查找角色（避免硬编码名称/房号）
+      function getTenant(id) { return tenants.find(t => t.id === id); }
+
       let actionPoints = 5;
       let riskValue = 0;
       let currentDay = 1;
@@ -1281,7 +1271,7 @@
 
       const endings = {
         arrested: { icon: '🚔', title: '结局一：绳之以法',
-          desc: '破绽值累积至极限，侦探已掌握全部证据。警笛声划破静安公寓的夜空，你被当场逮捕。监控画面成了呈堂证供，你从偷窥者沦为阶下囚。',
+          desc: `破绽值累积至极限，${getTenant('detective').name}已掌握全部证据。警笛声划破静安公寓的夜空，你被当场逮捕。监控画面成了呈堂证供，你从偷窥者沦为阶下囚。`,
           color: '#ff4d4d' },
         redeemed: { icon: '🕊️', title: '结局二：迷途知返',
           desc: '在深渊边缘，你选择了回头。删除所有监控记录，主动向警方自首并提供证据。虽然仍需承担法律责任，但你挽救了自己最后的人性。', color: '#7ec8e3' },
@@ -1289,11 +1279,11 @@
           desc: '你成功获取了所有租客的秘密，而破绽值始终控制在安全线内。你成了静安公寓真正的"主人"，掌控着每个人的命运。但这份权力，会让你永远孤独。',
           color: '#f0c060' },
         caught: { icon: '🪤', title: '结局四：自投罗网',
-          desc: '你鲁莽地入侵了501室——那个神秘租客的房间。灯光骤亮，一副手铐已经等待多时。侦探亮出证件："等你很久了。"', color: '#ff6b6b' },
+          desc: `你鲁莽地入侵了${getTenant('detective').room}室——那个神秘租客的房间。灯光骤亮，一副手铐已经等待多时。${getTenant('detective').name}亮出证件："等你很久了。"`, color: '#ff6b6b' },
         fire: { icon: '🔥', title: '结局五：同归于尽',
           desc: '绝望中你选择销毁一切。火焰吞噬了静安公寓，也吞噬了所有证据——包括你自己。灰烬中，真相永远埋葬。', color: '#ff4444' },
         inherit: { icon: '🔮', title: '隐藏结局：继承者',
-          desc: '你发现了叔父失踪的真相——他并非逃逸，而是被更庞大的监控网络吞噬。你与侦探联手，揭开了幕后黑幕。代价是，你必须接替叔父，成为新的"守望者"。',
+          desc: `你发现了叔父失踪的真相——他并非逃逸，而是被更庞大的监控网络吞噬。你与${getTenant('detective').name}联手，揭开了幕后黑幕。代价是，你必须接替叔父，成为新的"守望者"。`,
           color: '#c084fc' }
       };
 
@@ -1774,20 +1764,13 @@
       function renderMonitorGrid() {
         const grid = document.getElementById('monitorGrid');
         grid.innerHTML = '';
-        const colors = {
-          'lin': 'radial-gradient(circle at 20% 30%, #3a2c3a, #15101c)',
-          'wen': 'radial-gradient(circle at 70% 20%, #2d3a4a, #10161e)',
-          'chen': 'radial-gradient(circle at 40% 50%, #4a4538, #1a1814)',
-          'zhang': 'radial-gradient(circle at 50% 40%, #2f3a44, #11171c)',
-          'detective': 'radial-gradient(circle at 30% 30%, #1e2832, #0c1016)'
-        };
         tenants.forEach(tenant => {
           const card = document.createElement('div');
           card.className = 'cam-card';
           card.setAttribute('data-room', tenant.room);
           card.innerHTML = `
-            <div class="cam-view" style="background:${colors[tenant.id]};">
-              <div class="room-graphic"><div class="figure" style="background:${tenant.isDetective?'#3a4552':'#5d6b7a'};"></div></div>
+            <div class="cam-view" style="background:${tenant.roomGradient};">
+              <div class="room-graphic"><div class="figure" style="background:${tenant.figureColor};"></div></div>
               <span class="cam-label">${tenant.room}室</span>
               <span class="live-badge"><span style="color:#ff8080;">●</span> LIVE</span>
             </div>`;
@@ -1919,7 +1902,7 @@
             addLog(`入侵${currentTenant.room}室，未发现新秘密`);
             alert('🔓 入侵完成，但未发现新秘密。破绽值+15');
           }
-          if (currentTenant.isDetective) addLog('⚠️ 警告：入侵了501室！');
+          if (currentTenant.isDetective) addLog(`⚠️ 警告：入侵了${currentTenant.room}室！`);
           updateMonitorUI();
           checkEndings();
         }
@@ -1927,21 +1910,24 @@
 
       function endDay() {
         if (gameOver) return;
-        if (currentDay >= maxDays) { alert('⚠️ 这是最后一天！明天侦探将提交最终报告。'); }
+        if (currentDay >= maxDays) { const det = getTenant('detective'); alert(`⚠️ 这是最后一天！明天${det.name}将提交最终报告。`); }
         currentDay++;
         actionPoints = 5;
         addLog(`第${currentDay}天开始，行动值已恢复。`);
         if (currentDay === 3) {
-          addLog('📢 系统提示：陈伯似乎注意到了异常，他年轻时曾是刑侦顾问。');
-          alert('📢 第3天：你注意到陈伯开始在走廊里停留更久，他的目光似乎能穿透墙壁。');
+          const chen = getTenant('chen');
+          addLog(`📢 系统提示：${chen.name}似乎注意到了异常，他年轻时曾是刑侦顾问。`);
+          alert(`📢 第3天：你注意到${chen.name}开始在走廊里停留更久，他的目光似乎能穿透墙壁。`);
         }
         if (currentDay === 5) {
-          addLog('⚠️ 关键事件：501室的神秘租客开始主动与其他租客接触。');
-          alert('⚠️ 第5天：501室的租客行为异常，她似乎在收集什么信息。');
+          const det = getTenant('detective');
+          addLog(`⚠️ 关键事件：${det.room}室的${det.name}开始主动与其他租客接触。`);
+          alert(`⚠️ 第5天：${det.room}室的租客行为异常，她似乎在收集什么信息。`);
           riskValue = Math.min(100, riskValue + 5);
         }
         if (currentDay === 7) {
-          addLog('🚨 最终日：侦探即将提交报告，今晚是最后的机会。');
+          const det = getTenant('detective');
+          addLog(`🚨 最终日：${det.name}即将提交报告，今晚是最后的机会。`);
           alert('🚨 第7天：你感到一种不祥的预感。今晚可能是最后的机会...');
           riskValue = Math.min(100, riskValue + 10);
           btnDestroy.style.display = 'block';
@@ -1982,8 +1968,10 @@
         if (chen && det && chen.secretsFound >= 3 && det.secretsFound >= 2 && riskValue >= 30 && riskValue <= 60 &&
           currentDay >= 6) {
           if (!storyLog.some(l => l.text.includes('隐藏线索'))) {
-            addLog('🔮 你发现陈伯的笔记中提到了"更大的网络"——这可能指向隐藏结局。');
-            alert('🔮 隐藏线索：陈伯的笔记提到了叔父失踪的真相。或许你可以与侦探合作？');
+            const chen = getTenant('chen');
+            const det = getTenant('detective');
+            addLog(`🔮 你发现${chen.name}的笔记中提到了"更大的网络"——这可能指向隐藏结局。`);
+            alert(`🔮 隐藏线索：${chen.name}的笔记提到了叔父失踪的真相。或许你可以与${det.name}合作？`);
           }
         }
       }
