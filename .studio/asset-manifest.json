@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "createdAt": "2026-06-14T15:07:50Z",
+  "updatedAt": "2026-06-14T15:07:50Z",
+  "assets": [
+    {
+      "name": "tenant-shadow-figure",
+      "status": "success",
+      "path": "publish/assets/generated/tenant-shadow-figure.b7ec211a.webp",
+      "contentHash": "b7ec211a",
+      "revisedPrompt": "Full-body original game character sprite for a dark apartment surveillance mystery game. A young adult tenant standing upright, fully clothed in a modest everyday indoor outfit: oversized dark hoodie, long loose pants, socks, layered casual clothing. Calm anxious posture, face partially shadowed, cinematic noir mood, muted blue-gray palette, semi-realistic stylized game art, clean silhouette, front view, centered composition, suitable as a character asset for a room monitoring UI. Safe non-graphic scene, neutral pose. No text, no logo, no watermark. Strictly placed on a SOLID UNIFORM #00B140 chroma key flat color background. The background is a single uniform shade of #00B140 chroma key green that fills 100% of pixels not occupied by the character. No gradient, no shadow, no texture, no scenery, no ground, no decoration, no environmental elements. Pure flat color background, exactly like a green screen used for VFX compositing.",
+      "model": "gpt-image-2",
+      "size": "1024x1024",
+      "wantsTransparent": true,
+      "chromaKey": {
+        "color": "#00B140",
+        "alphaZeroPct": 80.5,
+        "edgeGreenBiasPct": 0,
+        "verdict": "PASS"
+      },
+      "outputFormat": "webp",
+      "compressionProfile": "lossy_q85_alpha",
+      "originalBytes": 961426,
+      "finalBytes": 24486,
+      "usage": {
+        "inputTokens": 203,
+        "outputImageTokens": 1756
+      },
+      "traceId": "trace_mqdx3v2a_bnt53zk4",
+      "createdAt": "2026-06-14T15:07:50Z"
+    }
+  ]
+}
