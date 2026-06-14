@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>静安公寓 · 房东监控系统</title>
+  <style>
+    :root {
+      --bg-primary: #0e1217;
+      --bg-secondary: #141b22;
+      --bg-card: #1a212a;
+      --bg-input: #1a232e;
+      --border-default: #26313b;
+      --border-hover: #b0434f;
+      --text-primary: #e0e7f0;
+      --text-secondary: #8896a8;
+      --text-muted: #6e7c8b;
+      --accent-red: #d93b4f;
+      --accent-blue: #4cc9f0;
+      --accent-orange: #f9844a;
+      --accent-gold: #f0c060;
+      --danger-bg: #3d1e28;
+      --danger-border: #b03a4a;
+      --msg-me-bg: #1d4b5e;
+      --msg-tenant-bg: #232e3a;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 24px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: #0a0c0f;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Inter', 'SF Pro Text', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* 主应用容器 - 响应式，以iPhone12比例(390×844)为基础 */
+    .app-shell {
+      width: 100%;
+      height: 100%;
+      max-width: 430px;
+      max-height: 932px;
+      /* iPhone12比例为390:844≈0.462, 430:932≈0.461 */
+      background: var(--bg-primary);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    /* 在大屏幕上居中并添加微妙阴影 */
+    @media (min-width: 431px) {
+      body {
+        padding: 16px;
+      }
+      .app-shell {
+        border-radius: 8px;
+        height: min(100%, 932px);
+        aspect-ratio: 390 / 844;
+        max-height: 95vh;
+        width: auto;
+        max-width: min(430px, calc(95vh * 390 / 844));
+      }
+    }
+
+    @media (max-width: 430px) {
+      .app-shell {
+        max-width: 100%;
+        max-height: 100%;
+      }
+    }
+
+    /* 状态栏 */
+    .status-bar {
+      padding: 10px 16px 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #b0b8c1;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+    .status-bar .time {
+      font-weight: 600;
+      color: #e5e9f0;
+    }
+    .app-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 10px 4px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: #2f3a42 transparent;
+      position: relative;
+      -webkit-overflow-scrolling: touch;
+    }
+    .app-content::-webkit-scrollbar {
+      width: 3px;
+    }
+    .app-content::-webkit-scrollbar-thumb {
+      background: #2f3a42;
+      border-radius: 8px;
+    }
+    .app-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    /* 圆形头像占位 */
+    .avatar-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #2f3b4a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #d0dae6;
+      font-weight: 600;
+      font-size: 16px;
+      flex-shrink: 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .avatar-circle.small {
+      width: 32px;
+      height: 32px;
+      font-size: 13px;
+    }
+    .avatar-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: none;
+    }
+
+    /* 头部 */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 2px 2px 6px;
+      flex-shrink: 0;
+    }
+    .header h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #dce3eb;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .header h2 .dot {
+      width: 7px;
+      height: 7px;
+      background: #ff4d6d;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #ff4d6d;
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.6;
+        transform: scale(1.3);
+      }
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stage-tag {
+      background: #2a1a20;
+      color: #e8906c;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      border: 1px solid #4a2830;
+      white-space: nowrap;
+    }
+
+    /* 监控网格 */
+    .monitor-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+    .cam-card {
+      background: #141a20;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 1/1;
+      border: 1px solid #2c353f;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cam-card:active {
+      transform: scale(0.96);
+    }
+    .cam-card.selected {
+      border: 2px solid var(--accent-red);
+      box-shadow: 0 0 16px rgba(217, 59, 79, 0.5);
+    }
+    .cam-view {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      filter: grayscale(15%);
+    }
+    .room-graphic {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 12px;
+      position: relative;
+    }
+    .figure {
+      width: 26px;
+      height: 40px;
+      background: #4d5b6b;
+      border-radius: 14px 14px 5px 5px;
+      position: relative;
+      margin-bottom: 2px;
+      opacity: 0.9;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    }
+    .figure::after {
+      content: '';
+      position: absolute;
+      top: -7px;
+      left: 5px;
+      width: 14px;
+      height: 14px;
+      background: #6b7b8c;
+      border-radius: 50%;
+    }
+    .cam-label {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      padding: 2px 7px;
+      border-radius: 8px;
+      font-size: 10px;
+      color: #cdd6e0;
+      font-weight: 500;
+      z-index: 2;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .live-badge {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: #c92a2a;
+      color: white;
+      font-size: 8px;
+      font-weight: bold;
+      padding: 2px 5px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      z-index: 2;
+    }
+
+    /* 租客信息卡片 */
+    .tenant-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 10px 12px;
+      margin: 2px 0 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid #2c3844;
+      flex-shrink: 0;
+    }
+    .tenant-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+    .tenant-details {
+      min-width: 0;
+    }
+    .tenant-details h4 {
+      color: #f0f3f8;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+    .tenant-details span {
+      font-size: 10px;
+      color: #8896a8;
+    }
+    .secret-progress-bar {
+      width: 55px;
+      height: 3px;
+      background: #2a3540;
+      border-radius: 3px;
+      margin-top: 3px;
+      overflow: hidden;
+    }
+    .secret-progress-fill {
+      height: 100%;
+      background: #e8906c;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+    .action-badge {
+      background: #2c1e24;
+      color: #ff8c9a;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    /* 状态数值行 */
+    .stats-row {
+      display: flex;
+      gap: 6px;
+      margin: 4px 0 6px;
+      flex-shrink: 0;
+    }
+    .stat-box {
+      flex: 1;
+      background: #141b22;
+      border-radius: var(--radius-md);
+      padding: 9px 5px;
+      text-align: center;
+      border: 1px solid var(--border-default);
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+    .stat-box.warning {
+      border-color: #8b3a3a;
+      animation: warningGlow 2s infinite;
+    }
+    @keyframes warningGlow {
+      0%,
+      100% {
+        box-shadow: 0 0 6px rgba(200, 60, 60, 0.25);
+      }
+      50% {
+        box-shadow: 0 0 16px rgba(200, 60, 60, 0.55);
+      }
+    }
+    .stat-label {
+      font-size: 10px;
+      color: #7c8b9a;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .action-points {
+      color: var(--accent-blue);
+    }
+    .risk-level {
+      color: var(--accent-orange);
+    }
+
+    /* 操作按钮 */
+    .action-buttons {
+      display: flex;
+      gap: 6px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    .btn {
+      flex: 1;
+      background: #1e2935;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 10px 3px;
+      font-weight: 600;
+      font-size: 11px;
+      color: #cfdbe8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid #2e3b47;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active {
+      background: #26323e;
+      transform: scale(0.97);
+    }
+    .btn.danger {
+      background: var(--danger-bg);
+      border-color: var(--danger-border);
+      color: #ffb3bf;
+    }
+    .btn.danger:active {
+      background: #54212e;
+    }
+    .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-choices {
+      display: flex;
+      gap: 5px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .btn-choice {
+      flex: 1;
+      min-width: 44%;
+      background: #1a2530;
+      border: 1px solid #3a4a58;
+      border-radius: 12px;
+      padding: 7px 6px;
+      font-size: 10px;
+      color: #c8d6e4;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-choice:active {
+      background: #243340;
+      border-color: #e8906c;
+      color: #f0c060;
+    }
+
+    /* 聊天列表视图 */
+    .chat-list-view,
+    .chat-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .view-header {
+      padding: 8px 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #1f2a33;
+      margin-bottom: 4px;
+      flex-shrink: 0;
+    }
+    .back-btn {
+      background: none;
+      border: none;
+      color: #b0c0d0;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 8px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .back-btn:active {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .view-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e0e7f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+    .chat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .chat-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 8px;
+      border-radius: 14px;
+      background: #141c24;
+      border: 1px solid #24303b;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .chat-item:active {
+      background: #1e2a35;
+      border-color: var(--border-hover);
+    }
+    .chat-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .chat-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f0f4fa;
+    }
+    .chat-preview {
+      font-size: 10px;
+      color: #7b8a9c;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 160px;
+    }
+    .chat-room {
+      font-size: 10px;
+      color: #5a6b7e;
+    }
+
+    /* 聊天对话视图 */
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .msg-bubble {
+      max-width: 78%;
+      padding: 8px 11px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.45;
+      word-wrap: break-word;
+      animation: msgIn 0.2s ease;
+    }
+    @keyframes msgIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .msg-me {
+      align-self: flex-end;
+      background: var(--msg-me-bg);
+      color: #e0f0fa;
+      border-bottom-right-radius: 4px;
+    }
+    .msg-tenant {
+      align-self: flex-start;
+      background: var(--msg-tenant-bg);
+      color: #cdd8e6;
+      border-bottom-left-radius: 4px;
+    }
+    .input-area {
+      display: flex;
+      gap: 6px;
+      padding: 6px 2px;
+      border-top: 1px solid #1f2a33;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+    .msg-input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid #2d3b4a;
+      border-radius: 18px;
+      padding: 8px 12px;
+      color: #e0e7f0;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .msg-input:focus {
+      border-color: #4a6a7a;
+    }
+    .msg-input::placeholder {
+      color: #556677;
+    }
+    .send-btn {
+      background: var(--msg-me-bg);
+      border: none;
+      color: white;
+      border-radius: 18px;
+      padding: 0 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .send-btn:active {
+      opacity: 0.8;
+    }
+    .small-stats {
+      display: flex;
+      gap: 10px;
+      font-size: 10px;
+      color: #8899aa;
+    }
+
+    /* 档案室视图 */
+    .archive-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .archive-summary {
+      display: flex;
+      gap: 6px;
+      margin: 4px 0 8px;
+      flex-shrink: 0;
+    }
+    .archive-stat {
+      flex: 1;
+      background: #141b22;
+      border-radius: var(--radius-md);
+      padding: 10px 6px;
+      text-align: center;
+      border: 1px solid var(--border-default);
+    }
+    .archive-stat .stat-label {
+      font-size: 10px;
+      color: #7c8b9a;
+      margin-bottom: 3px;
+    }
+    .archive-stat .stat-value {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .archive-section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #a0b0c0;
+      margin: 8px 0 4px;
+      padding-left: 2px;
+      flex-shrink: 0;
+    }
+    .archive-tenant-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .archive-tenant-card {
+      background: #141c24;
+      border-radius: var(--radius-md);
+      padding: 10px;
+      border: 1px solid #24303b;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .archive-tenant-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .archive-tenant-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #f0f4fa;
+      margin-bottom: 2px;
+    }
+    .archive-tenant-room {
+      font-size: 10px;
+      color: #5a6b7e;
+      margin-bottom: 4px;
+    }
+    .archive-secret-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+    .archive-secret-tag {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #1a2530;
+      border: 1px solid #2e3b47;
+      color: #8896a8;
+    }
+    .archive-secret-tag.found {
+      background: #1e2a1e;
+      border-color: #3a5a3a;
+      color: #7ec87e;
+    }
+
+    /* 系统设置视图 */
+    .system-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .system-tabs {
+      display: flex;
+      gap: 4px;
+      margin: 4px 0 8px;
+      flex-shrink: 0;
+    }
+    .system-tab {
+      flex: 1;
+      text-align: center;
+      padding: 7px 4px;
+      background: #141c24;
+      border: 1px solid #24303b;
+      border-radius: var(--radius-sm);
+      color: #8896a8;
+      font-size: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .system-tab:active {
+      background: #1e2a35;
+    }
+    .system-tab.active {
+      background: #1e2a35;
+      border-color: var(--border-hover);
+      color: #f0f4fa;
+    }
+    .system-panel {
+      flex: 1;
+      overflow-y: auto;
+      display: none;
+    }
+    .system-panel.active {
+      display: block;
+    }
+    .sys-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #a0b0c0;
+      margin: 6px 0 6px;
+    }
+    .sys-form-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+    .sys-form-row input,
+    .sys-form-row select {
+      flex: 1;
+      background: #141c24;
+      border: 1px solid #24303b;
+      border-radius: var(--radius-sm);
+      padding: 7px 8px;
+      color: #e0e7f0;
+      font-size: 11px;
+      outline: none;
+    }
+    .sys-form-row input:focus,
+    .sys-form-row select:focus {
+      border-color: var(--border-hover);
+    }
+    .sys-btn {
+      background: #1e2a35;
+      border: 1px solid #2e3b47;
+      color: #cfdbe8;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sys-btn:active {
+      background: #2a3845;
+    }
+    .sys-btn.danger {
+      background: #3d1e28;
+      border-color: #b03a4a;
+      color: #ffb3bf;
+    }
+    .sys-btn.primary {
+      background: #1d4b5e;
+      border-color: #2d6b7e;
+      color: #b0e0f0;
+    }
+    .sys-tenant-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #141c24;
+      border: 1px solid #24303b;
+      border-radius: var(--radius-sm);
+      padding: 7px 8px;
+      margin-bottom: 4px;
+    }
+    .sys-tenant-item .info {
+      flex: 1;
+      min-width: 0;
+    }
+    .sys-tenant-item .name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #f0f4fa;
+    }
+    .sys-tenant-item .detail {
+      font-size: 10px;
+      color: #6e7c8b;
+    }
+    .sys-ai-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #141c24;
+      border: 1px solid #24303b;
+      border-radius: var(--radius-sm);
+      padding: 8px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sys-ai-option.selected {
+      border-color: var(--accent-blue);
+      background: #1a2a38;
+    }
+    .sys-ai-option .radio-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #4a5a6a;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sys-ai-option.selected .radio-dot {
+      border-color: var(--accent-blue);
+    }
+    .sys-ai-option .radio-dot::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: transparent;
+    }
+    .sys-ai-option.selected .radio-dot::after {
+      background: var(--accent-blue);
+    }
+    .sys-ai-option .ai-info {
+      flex: 1;
+    }
+    .sys-ai-option .ai-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: #f0f4fa;
+    }
+    .sys-ai-option .ai-desc {
+      font-size: 10px;
+      color: #6e7c8b;
+    }
+    .sys-save-card {
+      background: #141c24;
+      border: 1px solid #24303b;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .sys-save-card .save-icon {
+      font-size: 28px;
+      margin-bottom: 6px;
+    }
+    .sys-save-card .save-label {
+      font-size: 11px;
+      color: #8896a8;
+      margin-bottom: 8px;
+    }
+    .sys-save-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    /* 底部导航 */
+    .bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 8px 14px;
+      border-top: 1px solid #1f2a33;
+      flex-shrink: 0;
+      background: var(--bg-primary);
+    }
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      .bottom-nav {
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+      }
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #6e7c8b;
+      font-size: 10px;
+      gap: 4px;
+      cursor: pointer;
+      transition: color 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      padding: 6px 12px;
+      border-radius: 10px;
+    }
+    .nav-item:active {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .nav-item.active {
+      color: #f28482;
+    }
+    .nav-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    /* 模态弹窗 */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      animation: fadeIn 0.2s ease;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    .modal-card {
+      width: 88%;
+      max-height: 72%;
+      background: #151e26;
+      border-radius: 22px;
+      padding: 16px 14px;
+      border: 1px solid #2e3d4b;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .modal-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e0e7f0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 11px;
+      color: #b0bec8;
+      line-height: 1.6;
+      max-height: 280px;
+    }
+    .modal-body .log-entry {
+      padding: 5px 0;
+      border-bottom: 1px solid #1f2c36;
+      display: flex;
+      gap: 6px;
+    }
+    .log-day {
+      color: var(--accent-gold);
+      font-weight: 600;
+      min-width: 24px;
+      font-size: 11px;
+    }
+    .close-modal {
+      text-align: center;
+      font-size: 12px;
+      color: #8b9bb5;
+      padding: 8px;
+      cursor: pointer;
+      border-radius: 10px;
+      background: #1e2a35;
+      border: 1px solid #2f3d4b;
+      transition: background 0.2s;
+    }
+    .close-modal:active {
+      background: #2a3845;
+    }
+
+    /* 结局弹窗 */
+    .ending-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      animation: fadeIn 0.3s ease;
+    }
+    .ending-card {
+      width: 85%;
+      background: #111920;
+      border-radius: 22px;
+      padding: 18px 14px;
+      border: 1px solid #3a4048;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+    }
+    .ending-icon {
+      font-size: 44px;
+      margin-bottom: 8px;
+    }
+    .ending-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f0e0c0;
+      margin-bottom: 6px;
+    }
+    .ending-desc {
+      font-size: 11px;
+      color: #a0b0c0;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    .ending-btn {
+      background: #2a3a48;
+      border: 1px solid #5a6a78;
+      color: #d0e0f0;
+      padding: 9px 20px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .ending-btn:active {
+      background: #3a4a58;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <span class="time" id="timeDisplay">第1天 · 21:46</span>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="app-content" id="appContent">
+      <!-- 监控视图 -->
+      <div id="monitorView" style="display:flex;flex-direction:column;height:100%;">
+        <div class="header">
+          <h2><span class="dot"></span>静安眼</h2>
+          <div class="header-right">
+            <span class="stage-tag" id="stageTag">🔍 好奇</span>
+            <button class="btn-choice" id="btnStoryLog" style="min-width:auto;padding:5px 10px;font-size:10px;flex:none;">📜 日志</button>
+          </div>
+        </div>
+        <div class="monitor-grid" id="monitorGrid"></div>
+        <div class="tenant-card" id="tenantCard">
+          <div class="tenant-info">
+            <div id="tenantAvatarContainer" class="avatar-circle"></div>
+            <div class="tenant-details">
+              <h4 id="tenantName">---</h4>
+              <span id="tenantRoom">---</span>
+              <div class="secret-progress-bar"><div class="secret-progress-fill" id="secretFill" style="width:33%;"></div></div>
+            </div>
+          </div>
+          <div class="action-badge" id="tenantSecret">秘密1/3</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-box" id="apBox">
+            <div class="stat-label">⚡行动值</div>
+            <div class="stat-value action-points" id="actionPoints">5/5</div>
+          </div>
+          <div class="stat-box" id="riskBox">
+            <div class="stat-label">⚠️破绽值</div>
+            <div class="stat-value risk-level" id="riskValue">0%</div>
+          </div>
+          <div class="stat-box" id="secretBox">
+            <div class="stat-label">🔑总秘密</div>
+            <div class="stat-value" style="color:#f0c060;" id="totalSecrets">0/15</div>
+          </div>
+        </div>
+        <div class="action-buttons">
+          <button class="btn" id="btnPeep"><span>👁️</span> 窥视 (1)</button>
+          <button class="btn" id="btnMark"><span>📌</span> 标记 (2)</button>
+          <button class="btn danger" id="btnIntrude"><span>🔓</span> 入侵 (5)</button>
+        </div>
+        <div class="btn-choices" id="choiceArea">
+          <button class="btn-choice" id="btnEndDay">🌙 结束今天</button>
+          <button class="btn-choice" id="btnConfess" style="display:none;">🙏 自首</button>
+          <button class="btn-choice" id="btnDestroy" style="display:none;">🔥 销毁证据</button>
+        </div>
+      </div>
+
+      <!-- 聊天列表视图 -->
+      <div id="chatListView" class="chat-list-view" style="display:none;">
+        <div class="view-header">
+          <span class="view-title">💬 私信列表</span>
+          <div class="small-stats"><span>⚡<span id="chatListAP">5/5</span></span><span>⚠️<span id="chatListRisk">0%</span></span></div>
+        </div>
+        <div class="chat-list" id="chatListContainer"></div>
+      </div>
+
+      <!-- 聊天对话视图 -->
+      <div id="chatView" class="chat-view" style="display:none;">
+        <div class="view-header">
+          <button class="back-btn" id="backToChatList">←</button>
+          <div class="view-title" id="chatTitleContainer"></div>
+          <div class="small-stats"><span>⚡<span id="chatViewAP">5/5</span></span><span>⚠️<span id="chatViewRisk">0%</span></span></div>
+        </div>
+        <div class="messages-container" id="messagesContainer"></div>
+        <div class="input-area">
+          <input type="text" class="msg-input" id="messageInput" placeholder="输入匿名消息..." autocomplete="off">
+          <button class="send-btn" id="sendMessageBtn">发送</button>
+        </div>
+      </div>
+
+      <!-- 档案室视图 -->
+      <div id="archiveView" class="archive-view" style="display:none;">
+        <div class="view-header">
+          <span class="view-title">📁 档案室</span>
+          <div class="small-stats"><span>⚡<span id="archiveAP">5/5</span></span><span>⚠️<span id="archiveRisk">0%</span></span></div>
+        </div>
+        <div class="archive-summary" id="archiveSummary"></div>
+        <div class="archive-section-title">🏠 租客秘密档案</div>
+        <div class="archive-tenant-list" id="archiveTenantList"></div>
+      </div>
+
+      <!-- 系统设置视图 -->
+      <div id="systemView" class="system-view" style="display:none;">
+        <div class="view-header">
+          <span class="view-title">⚙️ 系统设置</span>
+          <div class="small-stats"><span>⚡<span id="systemAP">5/5</span></span><span>⚠️<span id="systemRisk">0%</span></span></div>
+        </div>
+        <div class="system-tabs" id="systemTabs">
+          <div class="system-tab active" data-tab="tenants">👥 租客</div>
+          <div class="system-tab" data-tab="ai">🤖 AI模型</div>
+          <div class="system-tab" data-tab="save">💾 存档</div>
+        </div>
+        <!-- 租客管理面板 -->
+        <div class="system-panel active" id="panelTenants">
+          <div class="sys-section-title">📋 租客列表</div>
+          <div id="tenantManageList"></div>
+          <div style="text-align:center;padding:8px 0 4px;">
+            <button class="sys-btn primary" id="btnAddTenant" style="padding:8px 20px;font-size:12px;">➕ 添加新租客</button>
+          </div>
+        </div>
+        <!-- AI模型面板 -->
+        <div class="system-panel" id="panelAI">
+          <div class="sys-section-title">选择使用的AI模型</div>
+          <div id="aiModelList"></div>
+        </div>
+        <!-- 存档面板 -->
+        <div class="system-panel" id="panelSave">
+          <div class="sys-section-title">存档管理</div>
+          <div class="sys-save-card">
+            <div class="save-icon">💾</div>
+            <div class="save-label">保存当前游戏进度</div>
+            <div class="sys-save-actions">
+              <button class="sys-btn primary" id="btnSaveGame">保存游戏</button>
+              <button class="sys-btn" id="btnLoadGame">读取存档</button>
+              <button class="sys-btn danger" id="btnDeleteSave">删除存档</button>
+            </div>
+          </div>
+          <div id="saveStatus" style="font-size:10px;color:#6e7c8b;text-align:center;margin-top:4px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="bottom-nav">
+      <div class="nav-item active"><span class="nav-icon">📹</span><span>监控</span></div>
+      <div class="nav-item"><span class="nav-icon">📁</span><span>档案</span></div>
+      <div class="nav-item" id="navMessage"><span class="nav-icon">💬</span><span>私信</span></div>
+      <div class="nav-item"><span class="nav-icon">⚙️</span><span>系统</span></div>
+    </div>
+  </div>
+
+  <script src="data/tenants.js"></script>
+  <script>
+    (function() {
+      // ==================== 游戏数据（从 tenants.js 配置加载） ====================
+      const tenants = (window.GameData && window.GameData.tenants || []).map(t => ({
+        ...t,
+        secretsFound: 0,
+        secretNames: t.secretNames || Array.from({ length: t.secretsTotal || 3 }, (_, i) => `秘密${i + 1}`),
+        appearance: t.appearance || '待补充',
+        personality: t.personality || '待补充'
+      }));
+
+      let currentTenant = tenants[0];
+
+      // 辅助函数：按 ID 动态查找角色（避免硬编码名称/房号）
+      function getTenant(id) { return tenants.find(t => t.id === id); }
+
+      let actionPoints = 5;
+      let riskValue = 0;
+      let currentDay = 1;
+      const maxDays = 7;
+      let gameOver = false;
+      let storyLog = [];
+      const chatMessages = {};
+
+      const endings = {
+        arrested: { icon: '🚔', title: '结局一：绳之以法',
+          desc: `破绽值累积至极限，${getTenant('detective').name}已掌握全部证据。警笛声划破静安公寓的夜空，你被当场逮捕。监控画面成了呈堂证供，你从偷窥者沦为阶下囚。`,
+          color: '#ff4d4d' },
+        redeemed: { icon: '🕊️', title: '结局二：迷途知返',
+          desc: '在深渊边缘，你选择了回头。删除所有监控记录，主动向警方自首并提供证据。虽然仍需承担法律责任，但你挽救了自己最后的人性。', color: '#7ec8e3' },
+        perfect: { icon: '👑', title: '结局三：完美犯罪',
+          desc: '你成功获取了所有租客的秘密，而破绽值始终控制在安全线内。你成了静安公寓真正的"主人"，掌控着每个人的命运。但这份权力，会让你永远孤独。',
+          color: '#f0c060' },
+        caught: { icon: '🪤', title: '结局四：自投罗网',
+          desc: `你鲁莽地入侵了${getTenant('detective').room}室——那个神秘租客的房间。灯光骤亮，一副手铐已经等待多时。${getTenant('detective').name}亮出证件："等你很久了。"`, color: '#ff6b6b' },
+        fire: { icon: '🔥', title: '结局五：同归于尽',
+          desc: '绝望中你选择销毁一切。火焰吞噬了静安公寓，也吞噬了所有证据——包括你自己。灰烬中，真相永远埋葬。', color: '#ff4444' },
+        inherit: { icon: '🔮', title: '隐藏结局：继承者',
+          desc: `你发现了叔父失踪的真相——他并非逃逸，而是被更庞大的监控网络吞噬。你与${getTenant('detective').name}联手，揭开了幕后黑幕。代价是，你必须接替叔父，成为新的"守望者"。`,
+          color: '#c084fc' }
+      };
+
+      // ==================== DOM元素 ====================
+      const monitorView = document.getElementById('monitorView');
+      const chatListView = document.getElementById('chatListView');
+      const chatView = document.getElementById('chatView');
+      const archiveView = document.getElementById('archiveView');
+      const systemView = document.getElementById('systemView');
+      const chatListContainer = document.getElementById('chatListContainer');
+      const messagesContainer = document.getElementById('messagesContainer');
+      const messageInput = document.getElementById('messageInput');
+      const sendBtn = document.getElementById('sendMessageBtn');
+      const chatTitleContainer = document.getElementById('chatTitleContainer');
+      const backToChatListBtn = document.getElementById('backToChatList');
+      const tenantAvatarContainer = document.getElementById('tenantAvatarContainer');
+      const btnEndDay = document.getElementById('btnEndDay');
+      const btnConfess = document.getElementById('btnConfess');
+      const btnDestroy = document.getElementById('btnDestroy');
+      const btnStoryLog = document.getElementById('btnStoryLog');
+      const riskBox = document.getElementById('riskBox');
+      const stageTag = document.getElementById('stageTag');
+      const timeDisplay = document.getElementById('timeDisplay');
+
+      let activeChatTenant = null;
+
+      function createAvatar(tenant, size = '') {
+        const div = document.createElement('div');
+        div.className = `avatar-circle ${size}`;
+        if (tenant && tenant.avatar) {
+          div.innerHTML = `<img src="${tenant.avatar}" alt="" style="display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;"><span class="avatar-text" style="display:none;">${tenant.initial}</span>`;
+        } else {
+          div.innerHTML = `<span class="avatar-text">${tenant ? tenant.initial : '?'}</span><img src="" alt="" style="display:none;">`;
+        }
+        return div;
+      }
+
+      function avatarHTML(tenant, size = '') {
+        const sizeClass = size ? ' ' + size : '';
+        if (tenant && tenant.avatar) {
+          return `<div class="avatar-circle${sizeClass}" style="overflow:hidden;"><img src="${tenant.avatar}" alt="" style="display:block;width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>`;
+        }
+        return `<div class="avatar-circle${sizeClass}"><span class="avatar-text">${tenant ? tenant.initial : '?'}</span></div>`;
+      }
+
+      function getTotalSecrets() { return tenants.reduce((sum, t) => sum + t.secretsFound, 0); }
+
+      function getMaxSecrets() { return tenants.reduce((sum, t) => sum + t.secretsTotal, 0); }
+
+      function getStage() {
+        if (riskValue < 20) return { name: '好奇阶段', icon: '🔍', color: '#7ec8e3' };
+        if (riskValue < 50) return { name: '沉沦阶段', icon: '🌑', color: '#e8906c' };
+        if (riskValue < 80) return { name: '疯狂阶段', icon: '💀', color: '#ff6b6b' };
+        return { name: '末路阶段', icon: '⛓️', color: '#ff3b3b' };
+      }
+
+      function addLog(entry) { storyLog.push({ day: currentDay, text: entry }); }
+
+      function getSecretProgress(tenant) { return Math.round((tenant.secretsFound / tenant.secretsTotal) * 100); }
+
+      function updateAllStats() {
+        const apStr = `${actionPoints}/5`;
+        const riskStr = `${riskValue}%`;
+        document.getElementById('actionPoints').textContent = apStr;
+        document.getElementById('riskValue').textContent = riskStr;
+        document.getElementById('totalSecrets').textContent = `${getTotalSecrets()}/${getMaxSecrets()}`;
+        document.getElementById('chatListAP').textContent = apStr;
+        document.getElementById('chatListRisk').textContent = riskStr;
+        document.getElementById('chatViewAP').textContent = apStr;
+        document.getElementById('chatViewRisk').textContent = riskStr;
+        document.getElementById('archiveAP').textContent = apStr;
+        document.getElementById('archiveRisk').textContent = riskStr;
+        document.getElementById('systemAP').textContent = apStr;
+        document.getElementById('systemRisk').textContent = riskStr;
+        document.getElementById('secretFill').style.width = getSecretProgress(currentTenant) + '%';
+        document.getElementById('tenantSecret').textContent = `秘密${currentTenant.secretsFound}/${currentTenant.secretsTotal}`;
+        const stage = getStage();
+        stageTag.textContent = `${stage.icon} ${stage.name}`;
+        stageTag.style.color = stage.color;
+        timeDisplay.textContent = `第${currentDay}天 · ${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+        if (riskValue >= 80) riskBox.classList.add('warning');
+        else riskBox.classList.remove('warning');
+        btnConfess.style.display = (riskValue >= 30 && riskValue < 80 && currentDay >= 2) ? 'block' : 'none';
+        btnDestroy.style.display = (riskValue >= 80 || currentDay >= 6) ? 'block' : 'none';
+      }
+
+      function updateMonitorUI() {
+        document.getElementById('tenantName').textContent = currentTenant.name;
+        document.getElementById('tenantRoom').textContent = `${currentTenant.room}室 · ${currentTenant.desc}`;
+        tenantAvatarContainer.innerHTML = '';
+        tenantAvatarContainer.appendChild(createAvatar(currentTenant));
+        document.getElementById('secretFill').style.width = getSecretProgress(currentTenant) + '%';
+        document.getElementById('tenantSecret').textContent = `秘密${currentTenant.secretsFound}/${currentTenant.secretsTotal}`;
+        document.querySelectorAll('.cam-card').forEach(card => {
+          card.classList.toggle('selected', card.getAttribute('data-room') === currentTenant.room);
+        });
+        updateAllStats();
+      }
+
+      function renderArchiveView() {
+        const stage = getStage();
+        document.getElementById('archiveSummary').innerHTML = `
+          <div class="archive-stat"><div class="stat-label">🔑 总秘密</div><div class="stat-value" style="color:#f0c060;">${getTotalSecrets()}/${getMaxSecrets()}</div></div>
+          <div class="archive-stat"><div class="stat-label">⚠️ 破绽值</div><div class="stat-value" style="color:${stage.color};">${riskValue}%</div></div>
+          <div class="archive-stat"><div class="stat-label">🎭 阶段</div><div class="stat-value" style="color:${stage.color};font-size:13px;">${stage.icon} ${stage.name}</div></div>
+          <div class="archive-stat"><div class="stat-label">📅 天数</div><div class="stat-value" style="color:#4cc9f0;">${currentDay}/${maxDays}</div></div>
+        `;
+        const list = document.getElementById('archiveTenantList');
+        list.innerHTML = '';
+        tenants.forEach(tenant => {
+          const card = document.createElement('div');
+          card.className = 'archive-tenant-card';
+          const secretTags = tenant.secretNames.map((name, i) => {
+            const found = i < tenant.secretsFound;
+            return `<span class="archive-secret-tag${found ? ' found' : ''}">${found ? '✅ ' : '🔒 '}${name}</span>`;
+          }).join('');
+          card.innerHTML = `
+            ${avatarHTML(tenant, 'small')}
+            <div class="archive-tenant-info">
+              <div class="archive-tenant-name">${tenant.name} <span style="font-size:10px;color:#5a6b7e;">${tenant.room}室</span></div>
+              <div class="archive-tenant-room">${tenant.desc}</div>
+              <div class="archive-secret-list">${secretTags}</div>
+            </div>
+            <div style="color:#7ec87e;font-size:11px;font-weight:600;">${tenant.secretsFound}/${tenant.secretsTotal}</div>
+          `;
+          list.appendChild(card);
+        });
+      }
+
+      // ==================== 系统设置功能 ====================
+      let selectedAIModel = 'gpt4';
+
+      function renderSystemView() {
+        renderTenantManageList();
+        renderAIModelList();
+        setupSystemTabs();
+        setupTenantAdd();
+        setupSaveButtons();
+      }
+
+      function setupSystemTabs() {
+        document.querySelectorAll('.system-tab').forEach(tab => {
+          tab.removeEventListener('click', handleSystemTabClick);
+          tab.addEventListener('click', handleSystemTabClick);
+        });
+      }
+
+      function handleSystemTabClick() {
+        document.querySelectorAll('.system-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.system-panel').forEach(p => p.classList.remove('active'));
+        this.classList.add('active');
+        const panel = document.getElementById('panel' + this.dataset.tab.charAt(0).toUpperCase() + this.dataset.tab.slice(1));
+        if (panel) panel.classList.add('active');
+      }
+
+      function renderTenantManageList() {
+        const list = document.getElementById('tenantManageList');
+        if (!list) return;
+        list.innerHTML = '';
+        tenants.forEach((tenant, index) => {
+          const item = document.createElement('div');
+          item.className = 'sys-tenant-item';
+          item.innerHTML = `
+            ${avatarHTML(tenant, 'small')}
+            <div class="info">
+              <div class="name">${tenant.name} <span style="font-size:10px;color:#5a6b7e;">${tenant.room}室</span></div>
+              <div class="detail">${tenant.desc}</div>
+              <div style="font-size:9px;color:#6e7c8b;margin-top:2px;line-height:1.5;">
+                ${tenant.appearance ? '<span>👤 ' + tenant.appearance + '</span>' : ''}
+                ${tenant.personality ? '<br>🧠 ' + tenant.personality : ''}
+              </div>
+            </div>
+          `;
+          const btnGroup = document.createElement('div');
+          btnGroup.style.cssText = 'display:flex;gap:4px;';
+          const editBtn = document.createElement('button');
+          editBtn.className = 'sys-btn';
+          editBtn.textContent = '✏️';
+          editBtn.title = '修改资料';
+          editBtn.addEventListener('click', () => openEditTenant(tenant));
+          btnGroup.appendChild(editBtn);
+          if (!tenant.isDetective) {
+            const delBtn = document.createElement('button');
+            delBtn.className = 'sys-btn danger';
+            delBtn.textContent = '✕';
+            delBtn.title = '删除租客';
+            delBtn.addEventListener('click', () => {
+              if (confirm(`确定要删除租客"${tenant.name}"吗？`)) {
+                if (currentTenant.id === tenant.id) currentTenant = tenants[0];
+                tenants.splice(index, 1);
+                renderTenantManageList();
+                renderMonitorGrid();
+                updateMonitorUI();
+                addLog(`🗑️ 已删除租客：${tenant.name}`);
+              }
+            });
+            btnGroup.appendChild(delBtn);
+          }
+          item.appendChild(btnGroup);
+          list.appendChild(item);
+        });
+      }
+
+      function setupTenantAdd() {
+        const btn = document.getElementById('btnAddTenant');
+        if (!btn) return;
+        btn.removeEventListener('click', handleAddTenant);
+        btn.addEventListener('click', handleAddTenant);
+      }
+
+      function handleAddTenant() {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+          <div class="modal-card">
+            <div class="modal-title">➕ 添加新租客</div>
+            <div class="modal-body">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div id="addAvatarPreview" style="width:48px;height:48px;border-radius:50%;overflow:hidden;background:#2f3b4a;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#d0dae6;">?</div>
+                <div style="flex:1;">
+                  <label class="sys-btn" style="display:inline-block;cursor:pointer;">📷 上传头像<input type="file" id="addAvatarInput" accept="image/*" style="display:none;"></label>
+                </div>
+              </div>
+              <div class="sys-form-row"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;">姓名</span><input type="text" id="addTenantName" placeholder="请输入姓名"></div>
+              <div class="sys-form-row"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;">房号</span><input type="text" id="addTenantRoom" placeholder="如 601"></div>
+              <div class="sys-form-row"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;">描述</span><input type="text" id="addTenantDesc" placeholder="如 程序员"></div>
+              <div class="sys-form-row" style="align-items:flex-start;"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;padding-top:7px;">外貌</span><textarea id="addTenantAppearance" rows="2" placeholder="描述外貌特征..." style="flex:1;background:#141c24;border:1px solid #24303b;border-radius:var(--radius-sm);padding:7px 8px;color:#e0e7f0;font-size:11px;outline:none;resize:vertical;font-family:inherit;"></textarea></div>
+              <div class="sys-form-row" style="align-items:flex-start;"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;padding-top:7px;">性格</span><textarea id="addTenantPersonality" rows="2" placeholder="描述性格特点..." style="flex:1;background:#141c24;border:1px solid #24303b;border-radius:var(--radius-sm);padding:7px 8px;color:#e0e7f0;font-size:11px;outline:none;resize:vertical;font-family:inherit;"></textarea></div>
+            </div>
+            <button class="close-modal" id="btnConfirmAdd" style="margin-top:8px;">✅ 确认添加</button>
+            <button class="close-modal" id="btnCancelAdd" style="margin-top:4px;background:#2c1e24;border-color:#b03a4a;">取消</button>
+          </div>
+        `;
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        document.getElementById('appShell').appendChild(overlay);
+
+        let avatarData = null;
+
+        document.getElementById('addAvatarInput').addEventListener('change', function(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = function(ev) {
+            avatarData = ev.target.result;
+            document.getElementById('addAvatarPreview').innerHTML = `<img src="${avatarData}" style="width:100%;height:100%;object-fit:cover;">`;
+          };
+          reader.readAsDataURL(file);
+        });
+
+        document.getElementById('btnConfirmAdd').addEventListener('click', () => {
+          const name = document.getElementById('addTenantName').value.trim();
+          const room = document.getElementById('addTenantRoom').value.trim();
+          const desc = document.getElementById('addTenantDesc').value.trim();
+          const appearance = document.getElementById('addTenantAppearance').value.trim();
+          const personality = document.getElementById('addTenantPersonality').value.trim();
+          if (!name || !room) { alert('请至少填写姓名和房号'); return; }
+          if (tenants.some(t => t.room === room)) { alert('该房号已存在'); return; }
+          const initial = name.charAt(0);
+          const id = 'custom_' + Date.now();
+          const secretNames = Array.from({ length: 3 }, (_, i) => `秘密${i + 1}`);
+          tenants.push({ id, name, room, initial, avatar: avatarData, secretsTotal: 3, secretsFound: 0, desc: desc || '未知',
+            appearance: appearance || '待补充', personality: personality || '待补充', secretNames });
+          overlay.remove();
+          renderTenantManageList();
+          renderMonitorGrid();
+          addLog(`👤 添加了新租客：${name}（${room}室）`);
+          alert(`✅ 已添加租客"${name}"`);
+        });
+
+        document.getElementById('btnCancelAdd').addEventListener('click', () => overlay.remove());
+      }
+
+      function openEditTenant(tenant) {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+          <div class="modal-card">
+            <div class="modal-title">✏️ 修改租客资料 - ${tenant.name}</div>
+            <div class="modal-body">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <div id="editAvatarPreview" style="width:48px;height:48px;border-radius:50%;overflow:hidden;background:#2f3b4a;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:#d0dae6;">${tenant.avatar ? `<img src="${tenant.avatar}" style="width:100%;height:100%;object-fit:cover;">` : tenant.initial}</div>
+                <div style="flex:1;">
+                  <label class="sys-btn" style="display:inline-block;cursor:pointer;">📷 上传头像<input type="file" id="editAvatarInput" accept="image/*" style="display:none;"></label>
+                  ${tenant.avatar ? '<button class="sys-btn danger" id="btnRemoveAvatar" style="margin-left:4px;">✕ 移除</button>' : ''}
+                </div>
+              </div>
+              <div class="sys-form-row"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;">姓名</span><input type="text" id="editTenantName" value="${tenant.name}"></div>
+              <div class="sys-form-row"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;">房号</span><input type="text" id="editTenantRoom" value="${tenant.room}"></div>
+              <div class="sys-form-row"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;">描述</span><input type="text" id="editTenantDesc" value="${tenant.desc}"></div>
+              <div class="sys-form-row" style="align-items:flex-start;"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;padding-top:7px;">外貌</span><textarea id="editTenantAppearance" rows="2" style="flex:1;background:#141c24;border:1px solid #24303b;border-radius:var(--radius-sm);padding:7px 8px;color:#e0e7f0;font-size:11px;outline:none;resize:vertical;font-family:inherit;">${tenant.appearance || ''}</textarea></div>
+              <div class="sys-form-row" style="align-items:flex-start;"><span style="width:44px;font-size:11px;color:#8896a8;flex-shrink:0;padding-top:7px;">性格</span><textarea id="editTenantPersonality" rows="2" style="flex:1;background:#141c24;border:1px solid #24303b;border-radius:var(--radius-sm);padding:7px 8px;color:#e0e7f0;font-size:11px;outline:none;resize:vertical;font-family:inherit;">${tenant.personality || ''}</textarea></div>
+            </div>
+            <button class="close-modal" id="btnSaveEdit" style="margin-top:8px;">💾 保存修改</button>
+            <button class="close-modal" id="btnCancelEdit" style="margin-top:4px;background:#2c1e24;border-color:#b03a4a;">取消</button>
+          </div>
+        `;
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        document.getElementById('appShell').appendChild(overlay);
+
+        let newAvatarData = tenant.avatar || null;
+
+        document.getElementById('editAvatarInput').addEventListener('change', function(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = function(ev) {
+            newAvatarData = ev.target.result;
+            const preview = document.getElementById('editAvatarPreview');
+            preview.innerHTML = `<img src="${newAvatarData}" style="width:100%;height:100%;object-fit:cover;">`;
+            const rmBtn = document.getElementById('btnRemoveAvatar');
+            if (!rmBtn) {
+              const container = preview.parentElement;
+              const btnDiv = container.querySelector('div:last-child');
+              const removeBtn = document.createElement('button');
+              removeBtn.className = 'sys-btn danger';
+              removeBtn.id = 'btnRemoveAvatar';
+              removeBtn.textContent = '✕ 移除';
+              removeBtn.style.marginLeft = '4px';
+              removeBtn.addEventListener('click', () => {
+                newAvatarData = null;
+                preview.innerHTML = tenant.initial;
+                removeBtn.remove();
+                document.getElementById('editAvatarInput').value = '';
+              });
+              btnDiv.appendChild(removeBtn);
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+
+        const removeBtn = document.getElementById('btnRemoveAvatar');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', () => {
+            newAvatarData = null;
+            document.getElementById('editAvatarPreview').innerHTML = tenant.initial;
+            removeBtn.remove();
+            document.getElementById('editAvatarInput').value = '';
+          });
+        }
+
+        document.getElementById('btnSaveEdit').addEventListener('click', () => {
+          const newName = document.getElementById('editTenantName').value.trim();
+          const newRoom = document.getElementById('editTenantRoom').value.trim();
+          const newDesc = document.getElementById('editTenantDesc').value.trim();
+          const newAppearance = document.getElementById('editTenantAppearance').value.trim();
+          const newPersonality = document.getElementById('editTenantPersonality').value.trim();
+          if (!newName || !newRoom) { alert('姓名和房号不能为空'); return; }
+          if (newRoom !== tenant.room && tenants.some(t => t.room === newRoom)) { alert('该房号已被占用'); return; }
+          const oldName = tenant.name;
+          tenant.name = newName;
+          tenant.room = newRoom;
+          tenant.desc = newDesc || tenant.desc;
+          tenant.appearance = newAppearance || tenant.appearance;
+          tenant.personality = newPersonality || tenant.personality;
+          tenant.avatar = newAvatarData;
+          tenant.initial = newName.charAt(0);
+          overlay.remove();
+          renderTenantManageList();
+          renderMonitorGrid();
+          updateMonitorUI();
+          renderArchiveView();
+          addLog(`✏️ 修改了租客资料：${oldName} → ${newName}`);
+          alert('✅ 资料已更新');
+        });
+        document.getElementById('btnCancelEdit').addEventListener('click', () => overlay.remove());
+      }
+
+      function renderAIModelList() {
+        const container = document.getElementById('aiModelList');
+        if (!container) return;
+        const models = [
+          { id: 'gpt4', name: 'GPT-4o', desc: '通用智能，快速响应', icon: '🟢' },
+          { id: 'gpt4mini', name: 'GPT-4o-mini', desc: '轻量高效，经济实惠', icon: '🟡' },
+          { id: 'claude', name: 'Claude 3.5', desc: '深度思考，善于分析', icon: '🟣' },
+          { id: 'deepseek', name: 'DeepSeek-V3', desc: '本地优化，隐私安全', icon: '🔵' },
+          { id: 'gemini', name: 'Gemini Pro', desc: '多模态理解，全面分析', icon: '🟠' }
+        ];
+        container.innerHTML = '';
+        models.forEach(model => {
+          const option = document.createElement('div');
+          option.className = 'sys-ai-option' + (selectedAIModel === model.id ? ' selected' : '');
+          option.innerHTML = `
+            <div class="radio-dot"></div>
+            <div class="ai-info">
+              <div class="ai-name">${model.icon} ${model.name}</div>
+              <div class="ai-desc">${model.desc}</div>
+            </div>
+          `;
+          option.addEventListener('click', () => {
+            selectedAIModel = model.id;
+            renderAIModelList();
+          });
+          container.appendChild(option);
+        });
+      }
+
+      function setupSaveButtons() {
+        const btnSave = document.getElementById('btnSaveGame');
+        const btnLoad = document.getElementById('btnLoadGame');
+        const btnDelete = document.getElementById('btnDeleteSave');
+        const status = document.getElementById('saveStatus');
+        if (btnSave) {
+          btnSave.removeEventListener('click', handleSave);
+          btnSave.addEventListener('click', handleSave);
+        }
+        if (btnLoad) {
+          btnLoad.removeEventListener('click', handleLoad);
+          btnLoad.addEventListener('click', handleLoad);
+        }
+        if (btnDelete) {
+          btnDelete.removeEventListener('click', handleDeleteSave);
+          btnDelete.addEventListener('click', handleDeleteSave);
+        }
+      }
+
+      function handleSave() {
+        const saveData = {
+          tenants: tenants.map(t => ({ ...t })),
+          currentTenantId: currentTenant.id,
+          actionPoints,
+          riskValue,
+          currentDay,
+          maxDays,
+          gameOver,
+          storyLog,
+          chatMessages,
+          selectedAIModel,
+          savedAt: new Date().toLocaleString('zh-CN')
+        };
+        try {
+          localStorage.setItem('jingan_save', JSON.stringify(saveData));
+          document.getElementById('saveStatus').textContent = `✅ 已保存于 ${saveData.savedAt}`;
+          addLog('💾 游戏已存档');
+        } catch (e) {
+          document.getElementById('saveStatus').textContent = '❌ 存档失败：' + e.message;
+        }
+      }
+
+      function handleLoad() {
+        try {
+          const raw = localStorage.getItem('jingan_save');
+          if (!raw) { alert('⚠️ 没有找到存档'); return; }
+          const data = JSON.parse(raw);
+          data.tenants.forEach((saved, i) => {
+            if (i < tenants.length) Object.assign(tenants[i], saved);
+            else tenants.push(saved);
+          });
+          while (tenants.length > data.tenants.length) tenants.pop();
+          currentTenant = tenants.find(t => t.id === data.currentTenantId) || tenants[0];
+          actionPoints = data.actionPoints;
+          riskValue = data.riskValue;
+          currentDay = data.currentDay;
+          gameOver = data.gameOver;
+          storyLog = data.storyLog || [];
+          Object.keys(data.chatMessages || {}).forEach(k => chatMessages[k] = data.chatMessages[k]);
+          if (data.selectedAIModel) selectedAIModel = data.selectedAIModel;
+          document.getElementById('saveStatus').textContent = `📂 已读取存档 (${data.savedAt || '未知时间'})`;
+          renderMonitorGrid();
+          updateMonitorUI();
+          renderTenantManageList();
+          renderAIModelList();
+          addLog('📂 已读取存档');
+          alert('✅ 存档已读取');
+        } catch (e) {
+          document.getElementById('saveStatus').textContent = '❌ 读取失败：' + e.message;
+        }
+      }
+
+      function handleDeleteSave() {
+        if (!localStorage.getItem('jingan_save')) { alert('⚠️ 没有存档可删除'); return; }
+        if (confirm('确定要删除存档吗？')) {
+          localStorage.removeItem('jingan_save');
+          document.getElementById('saveStatus').textContent = '🗑️ 存档已删除';
+          addLog('🗑️ 存档已删除');
+        }
+      }
+
+      function renderMonitorGrid() {
+        const grid = document.getElementById('monitorGrid');
+        grid.innerHTML = '';
+        tenants.forEach(tenant => {
+          const card = document.createElement('div');
+          card.className = 'cam-card';
+          card.setAttribute('data-room', tenant.room);
+          card.innerHTML = `
+            <div class="cam-view" style="background:${tenant.roomGradient};">
+              <div class="room-graphic"><div class="figure" style="background:${tenant.figureColor};"></div></div>
+              <span class="cam-label">${tenant.room}室</span>
+              <span class="live-badge"><span style="color:#ff8080;">●</span> LIVE</span>
+            </div>`;
+          card.addEventListener('click', () => {
+            currentTenant = tenant;
+            updateMonitorUI();
+          });
+          grid.appendChild(card);
+        });
+      }
+
+      function showView(view) {
+        monitorView.style.display = 'none';
+        chatListView.style.display = 'none';
+        chatView.style.display = 'none';
+        archiveView.style.display = 'none';
+        systemView.style.display = 'none';
+        if (view === 'monitor') { monitorView.style.display = 'flex';
+          setActiveNav('monitor'); } else if (view === 'chatList') { chatListView.style.display = 'flex';
+          renderChatList();
+          setActiveNav('message'); } else if (view === 'chat') { chatView.style.display = 'flex';
+          setActiveNav('message'); } else if (view === 'archive') { archiveView.style.display = 'flex';
+          renderArchiveView();
+          setActiveNav('archive'); } else if (view === 'system') { systemView.style.display = 'flex';
+          renderSystemView();
+          setActiveNav('system'); }
+        updateAllStats();
+      }
+
+      function setActiveNav(type) {
+        document.querySelectorAll('.nav-item').forEach((n, i) => n.classList.toggle('active', i === { monitor: 0,
+          archive: 1, message: 2, system: 3 } [type]));
+      }
+
+      function renderChatList() {
+        chatListContainer.innerHTML = '';
+        tenants.forEach(tenant => {
+          const msgs = chatMessages[tenant.id] || [];
+          const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1].text : '暂无消息';
+          const preview = lastMsg.length > 16 ? lastMsg.substring(0, 16) + '…' : lastMsg;
+          const item = document.createElement('div');
+          item.className = 'chat-item';
+          item.appendChild(createAvatar(tenant, 'small'));
+          const infoDiv = document.createElement('div');
+          infoDiv.className = 'chat-info';
+          infoDiv.innerHTML =
+            `<div class="chat-name">${tenant.name} <span class="chat-room">${tenant.room}室</span></div><div class="chat-preview">${preview}</div>`;
+          item.appendChild(infoDiv);
+          item.addEventListener('click', () => openChat(tenant));
+          chatListContainer.appendChild(item);
+        });
+      }
+
+      function openChat(tenant) {
+        activeChatTenant = tenant;
+        chatTitleContainer.innerHTML = '';
+        chatTitleContainer.appendChild(createAvatar(tenant, 'small'));
+        const titleText = document.createElement('span');
+        titleText.textContent = `${tenant.name} · ${tenant.room}室`;
+        chatTitleContainer.appendChild(titleText);
+        renderMessages();
+        showView('chat');
+      }
+
+      function renderMessages() {
+        if (!activeChatTenant) return;
+        messagesContainer.innerHTML = '';
+        (chatMessages[activeChatTenant.id] || []).forEach(msg => {
+          const bubble = document.createElement('div');
+          bubble.className = `msg-bubble ${msg.sender === 'me' ? 'msg-me' : 'msg-tenant'}`;
+          bubble.textContent = msg.text;
+          messagesContainer.appendChild(bubble);
+        });
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      function sendMessage() {
+        const text = messageInput.value.trim();
+        if (!text || !activeChatTenant || gameOver) return;
+        if (actionPoints < 1) { alert('❌ 行动值不足'); return; }
+        actionPoints--;
+        riskValue = Math.min(100, riskValue + 2);
+        if (!chatMessages[activeChatTenant.id]) chatMessages[activeChatTenant.id] = [];
+        chatMessages[activeChatTenant.id].push({ sender: 'me', text });
+        messageInput.value = '';
+        renderMessages();
+        updateAllStats();
+        checkEndings();
+      }
+
+      function performAction(type) {
+        if (gameOver) { alert('游戏已结束，请刷新重新开始。'); return; }
+        if (type === 'peep') {
+          if (actionPoints < 1) { alert('❌ 行动值不足'); return; }
+          actionPoints--;
+          riskValue = Math.min(100, riskValue + 1);
+          if (currentTenant.secretsFound < currentTenant.secretsTotal && Math.random() < 0.4) {
+            currentTenant.secretsFound = Math.min(currentTenant.secretsTotal, currentTenant.secretsFound + 1);
+            const sName = currentTenant.secretNames[currentTenant.secretsFound - 1];
+            addLog(`窥视${currentTenant.name}时发现秘密：${sName}`);
+            alert(`👁️ 发现新秘密！「${sName}」`);
+          }
+          addLog(`窥视了${currentTenant.name}(${currentTenant.room}室)`);
+          updateMonitorUI();
+          checkEndings();
+        } else if (type === 'mark') {
+          if (actionPoints < 2) { alert('❌ 需要2点行动值'); return; }
+          actionPoints -= 2;
+          riskValue = Math.min(100, riskValue + 2);
+          addLog(`标记了${currentTenant.name}，AI将追踪其24小时行为`);
+          alert(`📌 已标记 ${currentTenant.name}。明日将收到AI分析简报。`);
+          updateAllStats();
+          checkEndings();
+        } else if (type === 'intrude') {
+          if (actionPoints < 5) { alert('❌ 需要5点行动值'); return; }
+          if (currentTenant.isDetective && riskValue >= 60) { triggerEnding('caught'); return; }
+          actionPoints = 0;
+          riskValue = Math.min(100, riskValue + 15);
+          const foundAll = currentTenant.secretsFound >= currentTenant.secretsTotal;
+          if (!foundAll) {
+            const newFound = Math.min(currentTenant.secretsTotal, currentTenant.secretsFound + 2);
+            const discovered = [];
+            for (let i = currentTenant.secretsFound; i < newFound; i++) discovered.push(currentTenant
+              .secretNames[i]);
+            currentTenant.secretsFound = newFound;
+            addLog(`入侵${currentTenant.room}室，发现秘密：${discovered.join('、')}`);
+            alert(`🔓 入侵成功！发现：${discovered.join('、')}\n破绽值+15`);
+          } else {
+            addLog(`入侵${currentTenant.room}室，未发现新秘密`);
+            alert('🔓 入侵完成，但未发现新秘密。破绽值+15');
+          }
+          if (currentTenant.isDetective) addLog(`⚠️ 警告：入侵了${currentTenant.room}室！`);
+          updateMonitorUI();
+          checkEndings();
+        }
+      }
+
+      function endDay() {
+        if (gameOver) return;
+        if (currentDay >= maxDays) { const det = getTenant('detective'); alert(`⚠️ 这是最后一天！明天${det.name}将提交最终报告。`); }
+        currentDay++;
+        actionPoints = 5;
+        addLog(`第${currentDay}天开始，行动值已恢复。`);
+        if (currentDay === 3) {
+          const chen = getTenant('chen');
+          addLog(`📢 系统提示：${chen.name}似乎注意到了异常，他年轻时曾是刑侦顾问。`);
+          alert(`📢 第3天：你注意到${chen.name}开始在走廊里停留更久，他的目光似乎能穿透墙壁。`);
+        }
+        if (currentDay === 5) {
+          const det = getTenant('detective');
+          addLog(`⚠️ 关键事件：${det.room}室的${det.name}开始主动与其他租客接触。`);
+          alert(`⚠️ 第5天：${det.room}室的租客行为异常，她似乎在收集什么信息。`);
+          riskValue = Math.min(100, riskValue + 5);
+        }
+        if (currentDay === 7) {
+          const det = getTenant('detective');
+          addLog(`🚨 最终日：${det.name}即将提交报告，今晚是最后的机会。`);
+          alert('🚨 第7天：你感到一种不祥的预感。今晚可能是最后的机会...');
+          riskValue = Math.min(100, riskValue + 10);
+          btnDestroy.style.display = 'block';
+        }
+        if (currentDay > maxDays) {
+          if (riskValue >= 80) triggerEnding('arrested');
+          else if (getTotalSecrets() >= 12 && riskValue < 50) triggerEnding('perfect');
+          else triggerEnding('arrested');
+          return;
+        }
+        updateAllStats();
+        checkEndings();
+      }
+
+      function confessAction() {
+        if (gameOver) return;
+        addLog('🙏 玩家选择自首。');
+        triggerEnding('redeemed');
+      }
+
+      function destroyAction() {
+        if (gameOver) return;
+        if (riskValue >= 90 || currentDay >= 7) { triggerEnding('fire'); } else {
+          riskValue = Math.min(100, riskValue + 30);
+          addLog('🔥 试图销毁证据，但引起了更多怀疑！');
+          alert('🔥 你试图销毁证据，但火势失控前被邻居报警。破绽值+30');
+          updateAllStats();
+          checkEndings();
+        }
+      }
+
+      function checkEndings() {
+        if (gameOver) return;
+        if (riskValue >= 100) { triggerEnding('arrested'); return; }
+        if (getTotalSecrets() >= 15 && riskValue < 30 && currentDay >= 5) { triggerEnding('perfect'); return; }
+        const chen = tenants.find(t => t.id === 'chen');
+        const det = tenants.find(t => t.id === 'detective');
+        if (chen && det && chen.secretsFound >= 3 && det.secretsFound >= 2 && riskValue >= 30 && riskValue <= 60 &&
+          currentDay >= 6) {
+          if (!storyLog.some(l => l.text.includes('隐藏线索'))) {
+            const chen = getTenant('chen');
+            const det = getTenant('detective');
+            addLog(`🔮 你发现${chen.name}的笔记中提到了"更大的网络"——这可能指向隐藏结局。`);
+            alert(`🔮 隐藏线索：${chen.name}的笔记提到了叔父失踪的真相。或许你可以与${det.name}合作？`);
+          }
+        }
+      }
+
+      function triggerEnding(endingKey) {
+        if (gameOver) return;
+        gameOver = true;
+        const ending = endings[endingKey];
+        addLog(`🎬 游戏结束：${ending.title}`);
+        const overlay = document.createElement('div');
+        overlay.className = 'ending-overlay';
+        overlay.innerHTML = `
+          <div class="ending-card">
+            <div class="ending-icon">${ending.icon}</div>
+            <div class="ending-title" style="color:${ending.color}">${ending.title}</div>
+            <div class="ending-desc">${ending.desc}</div>
+            <div style="font-size:10px;color:#8899aa;margin-bottom:8px;">破绽值：${riskValue}% | 总秘密：${getTotalSecrets()}/${getMaxSecrets()} | 天数：${currentDay}</div>
+            <button class="ending-btn" onclick="location.reload()">🔄 重新开始</button>
+          </div>`;
+        document.getElementById('appShell').appendChild(overlay);
+      }
+
+      function showStoryLog() {
+        const existing = document.getElementById('logOverlay');
+        if (existing) { existing.remove(); return; }
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'logOverlay';
+        const card = document.createElement('div');
+        card.className = 'modal-card';
+        card.innerHTML = '<div class="modal-title">📜 剧情日志</div>';
+        const body = document.createElement('div');
+        body.className = 'modal-body';
+        if (storyLog.length === 0) {
+          body.innerHTML = '<div style="color:#8899aa;">尚无记录。开始你的窥探之旅吧...</div>';
+        } else {
+          storyLog.slice().reverse().forEach(log => {
+            body.innerHTML +=
+              `<div class="log-entry"><span class="log-day">D${log.day}</span><span>${log.text}</span></div>`;
+          });
+        }
+        card.appendChild(body);
+        const closeBtn = document.createElement('div');
+        closeBtn.className = 'close-modal';
+        closeBtn.textContent = '关闭';
+        closeBtn.addEventListener('click', () => overlay.remove());
+        card.appendChild(closeBtn);
+        overlay.appendChild(card);
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        document.getElementById('appShell').appendChild(overlay);
+      }
+
+      // ==================== 事件绑定 ====================
+      document.getElementById('btnPeep').addEventListener('click', () => performAction('peep'));
+      document.getElementById('btnMark').addEventListener('click', () => performAction('mark'));
+      document.getElementById('btnIntrude').addEventListener('click', () => performAction('intrude'));
+      btnEndDay.addEventListener('click', endDay);
+      btnConfess.addEventListener('click', confessAction);
+      btnDestroy.addEventListener('click', destroyAction);
+      btnStoryLog.addEventListener('click', showStoryLog);
+      sendBtn.addEventListener('click', sendMessage);
+      messageInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+      backToChatListBtn.addEventListener('click', () => showView('chatList'));
+
+      document.querySelectorAll('.nav-item').forEach((item, index) => {
+        item.addEventListener('click', function() {
+          const navText = this.innerText.trim();
+          if (navText.includes('监控')) showView('monitor');
+          else if (navText.includes('档案')) showView('archive'); else if (navText.includes('私信')) {
+            showView(chatView.style.display === 'flex' ? 'chatList' : 'chatList');
+          } else if (navText.includes('系统')) {
+            showView('system');
+          }
+        });
+      });
+
+      // 双击破绽值重置
+      document.getElementById('riskValue').addEventListener('dblclick', function() {
+        if (confirm('确定要重置游戏状态吗？（演示功能）')) {
+          riskValue = 0;
+          actionPoints = 5;
+          currentDay = 1;
+          gameOver = false;
+          storyLog = [];
+          tenants.forEach(t => t.secretsFound = 0);
+          Object.keys(chatMessages).forEach(k => delete chatMessages[k]);
+          updateMonitorUI();
+          updateAllStats();
+          document.querySelectorAll('.ending-overlay').forEach(e => e.remove());
+          const logOverlay = document.getElementById('logOverlay');
+          if (logOverlay) logOverlay.remove();
+          addLog('游戏已重置。');
+          alert('🔄 状态已重置');
+        }
+      });
+
+      // ==================== 初始化 ====================
+      renderMonitorGrid();
+      updateMonitorUI();
+      showView('monitor');
+      addLog('📹 继承叔父的监控系统，开始观察静安公寓的租客们。');
+      addLog('⚠️ 记住：每一次犯罪都会留下痕迹。');
+    })();
+  </script>
+</body>
+</html>
