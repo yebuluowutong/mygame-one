@@ -1,2 +1,9 @@
 .atomcode/
-atomcode-v4.25.0-windows-x64.exe
+atomcode-*.exe
+uploads/
+.studio/
+create_same_structure.sh
+deepseek_html_20260614_73ad65.html
+git-tool.vbs
+push.ps1
+template.json
